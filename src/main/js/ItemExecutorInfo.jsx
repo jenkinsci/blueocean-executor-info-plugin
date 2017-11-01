@@ -25,7 +25,7 @@ export class ItemExecutorInfo extends React.Component {
             return null;
         }
         return (
-            <span title={`${pipeline.name} is using: ${executors.map(e => e.displayName).join(', ')}`}>
+            <span className="executor-info" title={`${pipeline.name} is using: ${executors.map(e => e.displayName).join(', ')}`}>
                 <Icon size={24} icon="HardwareComputer" color="rgba(53, 64, 82, 0.5)" />
             </span>
         );

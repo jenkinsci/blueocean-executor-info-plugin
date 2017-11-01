@@ -3,6 +3,6 @@ import { Route } from 'react-router';
 import { ExecutorInfoPage } from './ExecutorInfoPage';
 
 export default (
-    <Route path="/organizations/:organization/executor-info"
+    <Route path="/executor-info"
            component={ExecutorInfoPage} />
 );

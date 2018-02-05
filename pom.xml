@@ -4,20 +4,23 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.30</version>
+        <version>2.35</version>
     </parent>
     <name>Blue Ocean Executor Info</name>
     <artifactId>blueocean-executor-info</artifactId>
-    <version>0.1-beta-2-SNAPSHOT</version>
+    <version>0.1-beta-3-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <description>Show what executors are doing what.</description>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/Amazing+Plugin</url>
     <properties>
-        <java.level>7</java.level>
-        <jenkins.version>2.7.4</jenkins.version>
-        <node.version>6.2.1</node.version>
+        <jenkins.version>2.73.3</jenkins.version>
+        <java.level>8</java.level>
+        <node.version>6.4.0</node.version>
         <npm.version>3.10.10</npm.version>
-        <blueocean.version>1.2.0</blueocean.version>
+        <blueocean.version>1.4.0</blueocean.version>
+        <jenkins-test-harness.version>2.30</jenkins-test-harness.version>
+        <frontend-version>1.6</frontend-version>
+        <hpi.dependencyResolution>runtime</hpi.dependencyResolution>
     </properties>
     
     <licenses>
@@ -63,6 +66,17 @@
             <artifactId>structs</artifactId>
             <version>1.10</version>
         </dependency>
+        <dependency>
+                   <groupId>commons-codec</groupId>
+                   <artifactId>commons-codec</artifactId>
+                   <version>1.10</version>
+               </dependency>
+               
+               <dependency>
+                          <groupId>org.apache.commons</groupId>
+                          <artifactId>commons-lang3</artifactId>
+                          <version>3.6</version>
+                      </dependency>                       
     </dependencies>
 
     <repositories>
@@ -77,4 +91,105 @@
         <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
+
+
+    <profiles>
+        <profile>
+            <id>node-execution</id>
+            <activation>
+                <file>
+                    <exists>.mvn_exec_node</exists>
+                </file>
+            </activation>
+            <build>
+                <plugins>
+
+                    <plugin>
+                        <groupId>io.jenkins.blueocean</groupId>
+                        <artifactId>blueocean-maven-plugin</artifactId>
+                        <version>0.0.2</version>
+                        <executions>
+                            <execution>
+                                <!-- unpack package.json + JS into node_modules for any deps with JS files -->
+                                <!-- NOTE: must use 'initialize' and be declared before frontend-plugin so this occurs before npm install -->
+                                <id>upstream-dependencies</id>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>process-node-dependencies</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>package</id>
+                                <goals>
+                                    <goal>package-blueocean-resources</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <version>${frontend-version}</version>
+
+                        <executions>
+
+                            <execution>
+                                <phase>initialize</phase>
+                                <id>install node and npm</id>
+                                <goals>
+                                    <goal>install-node-and-npm</goal>
+                                </goals>
+                                <configuration>
+                                    <nodeVersion>v${node.version}</nodeVersion>
+                                    <npmVersion>${npm.version}</npmVersion>
+                                    <nodeDownloadRoot>https://repo.jenkins-ci.org/nodejs-dist/</nodeDownloadRoot>
+                                    <npmDownloadRoot>https://repo.jenkins-ci.org/npm-dist/</npmDownloadRoot>
+                                </configuration>
+                            </execution>
+
+                            <execution>
+                                <phase>initialize</phase>
+                                <id>npm install</id>
+                                <goals>
+                                    <goal>npm</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- Note that this may not be omitted lest maven-release-plugin be confused (frontend-maven-plugin #109): -->
+                                    <arguments>install ${npm.loglevel}</arguments>
+                                </configuration>
+                            </execution>
+
+                            <execution>
+                                <phase>generate-sources</phase>
+                                <id>npm mvnbuild</id>
+                                <goals>
+                                    <goal>npm</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- The package.json must define an "mvnbuild" script -->
+                                    <arguments>run mvnbuild</arguments>
+                                </configuration>
+                            </execution>
+
+                            <execution>
+                                <phase>test</phase>
+                                <id>npm mvntest</id>
+                                <goals>
+                                    <goal>npm</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- The package.json must define an "mvntest" script -->
+                                    <arguments>run mvntest</arguments>
+                                </configuration>
+                            </execution>
+
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+
 </project>
